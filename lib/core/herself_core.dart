@@ -1,47 +1,107 @@
-// This class handles the logic for suggesting which module to use.
-// It uses simple rules based on the girl's current status.
-class HerselfCore {
-  String mood;          // e.g., 'happy', 'stressed', 'tired'
-  int energyLevel;      // scale of 1-10
-  String dayStatus;     // e.g., 'completed', 'pending tasks'
-  bool isEmergency;     // true if the user is in immediate trouble
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-  // Constructor to initialize the values
-  HerselfCore({
-    required this.mood,
-    required this.energyLevel,
-    required this.dayStatus,
-    this.isEmergency = false,
-  });
+class UserState extends ChangeNotifier {
+  String _name;
+  String _mood;
+  int _energyLevel;
+  List<String> _tasks;
+  int _waterCups;
+  
+  // New Fields for missing functionality
+  String _emergencyContacts;
+  int _sleepHours;
+  int _daysUntilCycle;
+  bool _isSharingLocation;
 
-  // This method checks the rules and suggests the best module name.
+  final SharedPreferences _prefs;
+  
+  String get name => _name;
+  String get mood => _mood;
+  int get energyLevel => _energyLevel;
+  List<String> get tasks => _tasks;
+  int get waterCups => _waterCups;
+  String get emergencyContacts => _emergencyContacts;
+  int get sleepHours => _sleepHours;
+  int get daysUntilCycle => _daysUntilCycle;
+  bool get isSharingLocation => _isSharingLocation;
+
+  UserState(this._prefs)
+      : _name = _prefs.getString('user_name') ?? 'Sreeharini',
+        _mood = _prefs.getString('user_mood') ?? 'happy',
+        _energyLevel = _prefs.getInt('user_energy') ?? 7,
+        _tasks = _prefs.getStringList('user_tasks') ?? [],
+        _waterCups = _prefs.getInt('user_water') ?? 0,
+        _emergencyContacts = _prefs.getString('user_emergency') ?? 'Mom, Dad, Police',
+        _sleepHours = _prefs.getInt('user_sleep') ?? 7,
+        _daysUntilCycle = _prefs.getInt('user_cycle') ?? 12,
+        _isSharingLocation = _prefs.getBool('user_location') ?? true;
+
+  Future<void> updateName(String newName) async {
+    _name = newName.trim();
+    notifyListeners();
+    await _prefs.setString('user_name', _name);
+  }
+
+  Future<void> updateMood(String newMood) async {
+    _mood = newMood;
+    notifyListeners();
+    await _prefs.setString('user_mood', newMood);
+  }
+
+  Future<void> updateEnergy(int level) async {
+    _energyLevel = level;
+    notifyListeners();
+    await _prefs.setInt('user_energy', level);
+  }
+
+  Future<void> addTask(String task) async {
+    _tasks.add(task.trim());
+    notifyListeners();
+    await _prefs.setStringList('user_tasks', List.from(_tasks));
+  }
+
+  Future<void> removeTask(int index) async {
+    _tasks.removeAt(index);
+    notifyListeners();
+    await _prefs.setStringList('user_tasks', List.from(_tasks));
+  }
+
+  Future<void> incrementWater() async {
+    _waterCups++;
+    notifyListeners();
+    await _prefs.setInt('user_water', _waterCups);
+  }
+
+  // New Methods for persistence
+  Future<void> updateEmergencyContacts(String contacts) async {
+    _emergencyContacts = contacts;
+    notifyListeners();
+    await _prefs.setString('user_emergency', contacts);
+  }
+
+  Future<void> updateSleep(int hours) async {
+    _sleepHours = hours;
+    notifyListeners();
+    await _prefs.setInt('user_sleep', hours);
+  }
+
+  Future<void> updateCycleDays(int days) async {
+    _daysUntilCycle = days;
+    notifyListeners();
+    await _prefs.setInt('user_cycle', days);
+  }
+
+  Future<void> toggleLocation() async {
+    _isSharingLocation = !_isSharingLocation;
+    notifyListeners();
+    await _prefs.setBool('user_location', _isSharingLocation);
+  }
+
   String getSuggestedModule() {
-    // 1. Priority Rule: Guardian for emergencies
-    if (isEmergency) {
-      return 'Guardian';
-    }
-
-    // 2. Low energy means she needs a Boost
-    if (energyLevel < 5) {
-      return 'Boost';
-    }
-
-    // 3. If she is stressed, suggest the Safe Space
-    if (mood == 'stressed') {
-      return 'Safe Space';
-    }
-
-    // 4. If there are things left to do, suggest the Daily Planner
-    if (dayStatus == 'pending tasks') {
-      return 'Daily Planner';
-    }
-
-    // 5. Default suggestion if she's doing okay and has energy
-    if (energyLevel >= 5 && mood != 'stressed') {
-      return 'Health Care';
-    }
-
-    // Fallback in case none of the above match
-    return 'Boost';
+    if (_energyLevel < 4) return 'Boost';
+    if (_mood == 'stressed' || _mood == 'tired') return 'Safe Space';
+    if (_tasks.isNotEmpty) return 'Daily Planner';
+    return 'Health Care';
   }
 }

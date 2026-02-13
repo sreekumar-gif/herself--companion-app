@@ -1,238 +1,318 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'screens/boost_screen.dart';
 import 'screens/safe_space_screen.dart';
 import 'screens/daily_planner_screen.dart';
 import 'screens/health_care_screen.dart';
 import 'screens/guardian_screen.dart';
 import 'core/herself_core.dart';
+import 'package:intl/intl.dart';
 
-// 1. Changed to StatefulWidget so we can update the UI when the user picks a mood/energy
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
+  String _getGreeting() {
+    var hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
 
-class _HomeScreenState extends State<HomeScreen> {
-  // 2. State variables for simulation
-  String _mood = 'stressed';
-  int _energyLevel = 4;
-  final String _dayStatus = 'pending tasks';
-
-  @override
-  Widget build(BuildContext context) {
-    // 3. Create the logic instance with current state values
-    final core = HerselfCore(
-      mood: _mood,
-      energyLevel: _energyLevel,
-      dayStatus: _dayStatus,
-    );
-
-    // 4. Get the recommendation based on current state
-    String suggestedModule = core.getSuggestedModule();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('HERSELF'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Welcome, Sreeharini!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-
-            // --- ADDED: SIMULATION DROPDOWNS ---
-            Row(
-              children: [
-                // Mood Dropdown
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('How is your mood?', style: TextStyle(fontSize: 12)),
-                      DropdownButton<String>(
-                        value: _mood,
-                        isExpanded: true,
-                        items: ['happy', 'stressed', 'tired'].map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            _mood = newValue!;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 20),
-                // Energy Level Dropdown
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Energy Level (1-10)', style: TextStyle(fontSize: 12)),
-                      DropdownButton<int>(
-                        value: _energyLevel,
-                        isExpanded: true,
-                        items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((int value) {
-                          return DropdownMenuItem<int>(
-                            value: value,
-                            child: Text(value.toString()),
-                          );
-                        }).toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            _energyLevel = newValue!;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-
-            // Recommendation Banner
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.pinkAccent.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.pinkAccent),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.lightbulb, color: Colors.pinkAccent),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Recommended for you: $suggestedModule',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.pinkAccent,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 15,
-                mainAxisSpacing: 15,
-                children: [
-                  _buildDashboardButton(
-                    context,
-                    'Boost',
-                    Icons.bolt,
-                    Colors.orange,
-                    const BoostScreen(),
-                    suggestedModule == 'Boost',
-                  ),
-                  _buildDashboardButton(
-                    context,
-                    'Safe Space',
-                    Icons.spa,
-                    Colors.teal,
-                    const SafeSpaceScreen(),
-                    suggestedModule == 'Safe Space',
-                  ),
-                  _buildDashboardButton(
-                    context,
-                    'Daily Planner',
-                    Icons.event_note,
-                    Colors.blue,
-                    const DailyPlannerScreen(),
-                    suggestedModule == 'Daily Planner',
-                  ),
-                  _buildDashboardButton(
-                    context,
-                    'Health Care',
-                    Icons.favorite,
-                    Colors.redAccent,
-                    const HealthCareScreen(),
-                    suggestedModule == 'Health Care',
-                  ),
-                  _buildDashboardButton(
-                    context,
-                    'Guardian',
-                    Icons.security,
-                    Colors.indigo,
-                    const GuardianScreen(),
-                    suggestedModule == 'Guardian',
-                  ),
-                ],
-              ),
-            ),
-          ],
+  void _showEditProfile(BuildContext context, UserState state) {
+    final controller = TextEditingController(text: state.name);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Profile'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Your Name'),
+          autofocus: true,
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              state.updateName(controller.text);
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildDashboardButton(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-    Widget targetScreen,
-    bool isSuggested,
-  ) {
-    Color displayColor = isSuggested ? Colors.pinkAccent : color;
+  @override
+  Widget build(BuildContext context) {
+    final userState = Provider.of<UserState>(context);
+    final suggested = userState.getSuggestedModule();
 
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => targetScreen),
-        );
-      },
-      child: Card(
-        color: displayColor.withOpacity(0.1),
-        elevation: isSuggested ? 4 : 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: displayColor,
-            width: isSuggested ? 4 : 2,
+    final Map<String, Widget> screenMap = {
+      'Boost': const BoostScreen(),
+      'Safe Space': const SafeSpaceScreen(),
+      'Daily Planner': const DailyPlannerScreen(),
+      'Health Care': const HealthCareScreen(),
+      'Guardian': const GuardianScreen(),
+    };
+
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar.large(
+            expandedHeight: 150,
+            floating: false,
+            pinned: true,
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.account_circle_outlined),
+                onPressed: () => _showEditProfile(context, userState),
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                'HERSELF',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primaryContainer,
+                      Theme.of(context).colorScheme.surface,
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+            ),
           ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_getGreeting()}, ${userState.name}!',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    DateFormat('EEEE, MMMM d').format(DateTime.now()),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Recommendations Section
+                  GestureDetector(
+                    onTap: () {
+                      if (screenMap.containsKey(suggested)) {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => screenMap[suggested]!));
+                      }
+                    },
+                    child: _buildRecommendationCard(context, suggested),
+                  ),
+                  
+                  const SizedBox(height: 30),
+                  Text(
+                    'How are you feeling?',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildMoodSelector(context, userState),
+                  
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Energy Level',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '${userState.energyLevel}/10',
+                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: userState.energyLevel.toDouble(),
+                    min: 1,
+                    max: 10,
+                    divisions: 9,
+                    onChanged: (val) => userState.updateEnergy(val.toInt()),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  Text(
+                    'Explore Modules',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 15,
+                mainAxisSpacing: 15,
+                childAspectRatio: 1.1,
+              ),
+              delegate: SliverChildListDelegate([
+                _buildModuleCard(context, 'Boost', Icons.bolt, Colors.orange, const BoostScreen()),
+                _buildModuleCard(context, 'Safe Space', Icons.spa, Colors.teal, const SafeSpaceScreen()),
+                _buildModuleCard(context, 'Daily Planner', Icons.event_note, Colors.blue, const DailyPlannerScreen()),
+                _buildModuleCard(context, 'Health Care', Icons.favorite, Colors.redAccent, const HealthCareScreen()),
+                _buildModuleCard(context, 'Guardian', Icons.security, Colors.indigo, const GuardianScreen()),
+              ]),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationCard(BuildContext context, String module) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.auto_awesome, color: Colors.white, size: 32),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Recommended for you',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                Text(
+                  'Open $module',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMoodSelector(BuildContext context, UserState state) {
+    final moods = {
+      'happy': '😊',
+      'stressed': '😫',
+      'tired': '😴',
+      'calm': '😌',
+    };
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: moods.entries.map((entry) {
+        bool isSelected = state.mood == entry.key;
+        return GestureDetector(
+          onTap: () => state.updateMood(entry.key),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected ? Theme.of(context).colorScheme.primaryContainer : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[200]!,
+                width: 2,
+              ),
+            ),
+            child: Column(
+              children: [
+                Text(entry.value, style: const TextStyle(fontSize: 24)),
+                const SizedBox(height: 4),
+                Text(
+                  entry.key,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildModuleCard(BuildContext context, String title, IconData icon, Color color, Widget screen) {
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => screen)),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.grey[100]!),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 50, color: displayColor),
-            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(height: 12),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: displayColor,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
-            if (isSuggested)
-              const Text(
-                'Suggested',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.pinkAccent,
-                ),
-              ),
           ],
         ),
       ),
